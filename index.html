@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI DevOps Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --primary:#007acc;--primary-hover:#0056b3;--primary-light:#e6f3ff;
+  --secondary:#6c757d;--secondary-hover:#5a6268;
+  --success:#28a745;--success-light:#d4edda;
+  --warning:#ffc107;--warning-light:#fff3cd;
+  --danger:#dc3545;--danger-light:#f8d7da;
+  --info:#17a2b8;--info-light:#d1ecf1;
+  --bg:#ffffff;--bg-secondary:#f8f9fa;--bg-tertiary:#e9ecef;
+  --text:#212529;--text-secondary:#6c757d;--text-muted:#adb5bd;
+  --border:#dee2e6;--border-light:#f1f3f4;
+  --shadow:0 2px 4px rgba(0,0,0,0.1);--shadow-lg:0 4px 12px rgba(0,0,0,0.15);
+  --shadow-xl:0 8px 32px rgba(0,0,0,0.12);
+  --radius:8px;--radius-lg:12px;
+  --mono:'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  --sans:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--sans);}
+body{color:var(--text);position:relative;}
+/* BOOT */
+#boot{position:fixed;inset:0;background:linear-gradient(135deg, var(--bg) 0%, var(--bg-secondary) 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;gap:1rem;transition:opacity 0.5s;}
+#boot.hidden{opacity:0;pointer-events:none;}
+.boot-title{font-family:var(--sans);font-size:2.5rem;font-weight:700;color:var(--primary);letter-spacing:-0.02em;margin-bottom:0.5rem;}
+.boot-sub{font-size:0.9rem;color:var(--text-secondary);letter-spacing:0.01em;margin-bottom:2rem;font-weight:400;}
+.boot-log{font-size:0.85rem;color:var(--text);width:min(600px,90vw);text-align:left;line-height:1.6;letter-spacing:0.01em;}
+.boot-log .bl{opacity:0;animation:appear 0.08s forwards;}
+.boot-log .bl.ok::before{content:'✓';color:var(--success);margin-right:0.5rem;font-weight:600;}
+.boot-log .bl.info::before{content:'ℹ';color:var(--info);margin-right:0.5rem;font-weight:600;}
+.boot-log .bl.load::before{content:'⟳';color:var(--primary);margin-right:0.5rem;font-weight:600;animation:spin 1s linear infinite;}
+@keyframes appear{to{opacity:1;}}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.pbar{width:min(600px,90vw);height:4px;background:var(--border-light);margin-top:1.5rem;overflow:hidden;border-radius:2px;}
+.pfill{height:100%;background:linear-gradient(90deg,var(--primary),var(--primary-hover));width:0%;transition:width 0.15s;border-radius:2px;}
+/* APP */
+#app{display:grid;grid-template-rows:auto 1fr;height:100vh;opacity:0;transition:opacity 0.5s;}
+#app.visible{opacity:1;}
+/* TOPBAR */
+.topbar{display:grid;grid-template-columns:1.2fr auto 1fr;align-items:center;padding:0.75rem 1.8rem;border-bottom:1px solid rgba(0,255,65,0.16);background:rgba(2,12,6,0.92);backdrop-filter:blur(12px);position:relative;box-shadow:0 12px 40px rgba(0,0,0,0.25);}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--green),transparent);opacity:0.45;}
+.tb-left{display:flex;align-items:center;gap:1rem;}
+.sys-title{font-family:var(--orb);font-size:0.9rem;font-weight:800;letter-spacing:0.18em;color:var(--green);text-shadow:0 0 10px rgba(140,255,140,0.4);}
+.tb-center{font-family:var(--orb);font-size:0.62rem;color:rgba(180,255,180,0.9);letter-spacing:0.1em;text-align:center;line-height:1.7;}
+.tb-right{display:flex;align-items:center;gap:1.5rem;justify-content:flex-end;font-size:0.64rem;color:rgba(190,255,190,0.95);}
+.stat-pill{display:flex;align-items:center;gap:0.45rem;background:rgba(0,255,65,0.08);border:1px solid rgba(0,255,65,0.18);padding:0.4rem 0.85rem;border-radius:999px;}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pd 1.5s infinite;}
+@keyframes pd{0%,100%{opacity:1;}50%{opacity:0.4;}}
+/* WORKSPACE */
+.workspace{display:grid;grid-template-columns:280px 1fr;overflow:hidden;height:calc(100vh - 80px);}
+/* SIDEBAR */
+.sidebar{background:var(--bg);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 0;overflow-y:auto;box-shadow:var(--shadow);}
+.sb-sec{font-size:0.75rem;color:var(--text-secondary);letter-spacing:0.02em;padding:0.8rem 1.5rem 0.5rem;text-transform:uppercase;font-weight:600;}
+.ni{display:flex;align-items:center;gap:0.8rem;padding:0.9rem 1.5rem;cursor:pointer;font-size:0.85rem;color:var(--text-secondary);transition:all 0.2s;border-left:3px solid transparent;border-radius:0 8px 8px 0;margin:2px 8px;}
+.ni::before{content:'▶';color:var(--text-muted);transition:all 0.2s;font-size:0.7rem;opacity:0.6;}
+.ni:hover{color:var(--text);background:var(--bg-secondary);border-left-color:var(--primary);transform:translateX(2px);}
+.ni:hover::before{color:var(--primary);opacity:1;}
+.ni.active{color:var(--primary);border-left-color:var(--primary);background:var(--primary-light);font-weight:500;}
+.ni.active::before{color:var(--primary);opacity:1;}
+.nb{margin-left:auto;font-size:0.65rem;background:var(--primary-light);color:var(--primary);border:1px solid var(--primary);border-radius:12px;padding:0.2rem 0.6rem;font-weight:500;}
+.sdiv{height:1px;background:var(--border);margin:1rem 1.5rem;}
+.sys-info{margin-top:auto;padding:1.5rem;font-size:0.8rem;color:var(--text-secondary);line-height:1.6;border-top:1px solid var(--border);}
+.sys-info span{font-weight:600;color:var(--text);}
+/* PANELS */
+.panel-area{overflow:hidden;display:flex;flex-direction:column;}
+.panel{display:none;flex-direction:column;height:100%;animation:pin 0.25s ease;}
+.panel.active{display:flex;}
+@keyframes pin{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+.ph{padding:1.2rem 2rem;border-bottom:1px solid var(--border);background:var(--bg);display:flex;align-items:center;gap:1.2rem;}
+.ph-path{font-size:0.8rem;color:var(--text-secondary);}
+.ph-path span{color:var(--primary);}
+.ph-title{font-family:var(--sans);font-size:1.1rem;font-weight:600;color:var(--text);letter-spacing:-0.01em;}
+.cblink{display:inline-block;width:10px;height:16px;background:linear-gradient(180deg,var(--primary),transparent);vertical-align:middle;margin-left:6px;animation:cb 1.2s step-end infinite;}
+@keyframes cb{0%,100%{opacity:1;}50%{opacity:0;}}
+/* HOME */
+.home-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 2rem;gap:2rem;overflow-y:auto;}
+.ascii{font-size:clamp(0.32rem,1vw,0.65rem);line-height:1.2;color:var(--text-secondary);text-align:center;white-space:pre;letter-spacing:0.02em;max-width:100%;font-family:var(--mono);}
+.home-tag{font-size:0.9rem;color:var(--text-secondary);letter-spacing:0.01em;text-align:center;font-weight:500;}
+.mgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem;width:min(720px,100%);}
+.mc{background:var(--bg);border:1px solid var(--border);padding:1.8rem;cursor:pointer;transition:all 0.3s;border-radius:12px;box-shadow:var(--shadow);}
+.mc:hover{transform:translateY(-4px);border-color:var(--primary);box-shadow:var(--shadow-lg);}
+.mcid{font-size:0.7rem;color:var(--text-secondary);letter-spacing:0.02em;margin-bottom:0.6rem;text-transform:uppercase;font-weight:600;}
+.mct{font-family:var(--sans);font-size:0.95rem;font-weight:600;color:var(--text);letter-spacing:-0.005em;margin-bottom:0.6rem;}
+.mcd{font-size:0.85rem;color:var(--text-secondary);line-height:1.6;}
+.mca{position:absolute;right:1.2rem;bottom:1.2rem;font-size:0.8rem;color:var(--primary);opacity:0;transition:all 0.2s;font-weight:500;}
+.mc:hover .mca{opacity:1;right:1rem;}
+/* CHAT */
+.chat-body{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.msg{animation:mi 0.25s ease;}
+@keyframes mi{from{opacity:0;transform:translateY(15px);}to{opacity:1;transform:translateY(0);}}
+.mmeta{font-size:0.7rem;color:var(--text-secondary);margin-bottom:0.4rem;display:flex;align-items:center;gap:0.8rem;}
+.mtag{color:var(--primary);font-weight:600;}
+.mts{color:var(--text-muted);}
+.mcont{font-size:0.9rem;line-height:1.6;padding:1.2rem;border-radius:12px;border:1px solid var(--border);color:var(--text);white-space:pre-wrap;word-break:break-word;background:var(--bg);position:relative;}
+.msg.user .mcont{border-color:var(--warning);background:var(--warning-light);}
+.msg.bot .mcont{border-color:var(--primary);background:var(--primary-light);}
+.msg.user .mtag{color:var(--warning);}
+.typing-i{display:flex;gap:8px;align-items:center;padding:1rem;border-radius:12px;border:1px solid var(--border);width:fit-content;background:var(--bg-secondary);}
+.typing-i span{width:8px;height:8px;background:var(--primary);border-radius:50%;animation:td 1.4s infinite;}
+.typing-i span:nth-child(2){animation-delay:0.23s;}
+.typing-i span:nth-child(3){animation-delay:0.46s;}
+@keyframes td{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-6px);}}
+.chat-prompts{display:flex;gap:0.6rem;flex-wrap:wrap;padding:1rem;border-top:1px solid var(--border);background:var(--bg);}
+.qpc{font-size:0.75rem;color:var(--text-secondary);border:1px solid var(--border);padding:0.4rem 1rem;cursor:pointer;transition:all 0.2s;border-radius:8px;background:var(--bg);}
+.qpc:hover{color:var(--text);border-color:var(--primary);background:var(--primary-light);}
+.chat-ir{display:flex;align-items:flex-end;border-top:1px solid var(--border);background:var(--bg);padding:1.2rem;gap:1rem;}
+.iprompt{padding:0.8rem 0.6rem 0.8rem 1.2rem;font-size:0.85rem;color:var(--text-secondary);user-select:none;font-family:var(--mono);}
+.ci{flex:1;background:transparent;border:none;color:var(--text);font-family:var(--mono);font-size:0.85rem;padding:0.8rem 0;outline:none;resize:none;min-height:48px;max-height:140px;line-height:1.5;caret-color:var(--primary);}
+.ci::placeholder{color:var(--text-muted);}
+.xbtn{background:var(--primary);border:1px solid var(--primary);color:white;font-family:var(--sans);font-size:0.8rem;padding:0.8rem 1.5rem;cursor:pointer;letter-spacing:0.01em;transition:all 0.2s;border-radius:8px;box-shadow:var(--shadow);height:48px;font-weight:500;}
+.xbtn:hover{background:var(--primary-hover);transform:translateY(-1px);box-shadow:var(--shadow-lg);}
+.xbtn:disabled{opacity:0.6;cursor:not-allowed;box-shadow:none;transform:none;}
+/* TOOL */
+.tool-layout{flex:1;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;gap:1.5rem;padding:1.5rem;}
+.tpane{display:flex;flex-direction:column;overflow:hidden;border-radius:12px;border:1px solid var(--border);background:var(--bg);box-shadow:var(--shadow);}
+.paneh{padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);background:var(--bg-secondary);font-size:0.8rem;color:var(--text-secondary);letter-spacing:0.01em;display:flex;align-items:center;justify-content:space-between;font-weight:500;}
+.ptitle{color:var(--primary);font-weight:600;}
+.pbody{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.flabel{font-size:0.75rem;color:var(--text-secondary);letter-spacing:0.01em;text-transform:uppercase;margin-bottom:0.4rem;font-weight:600;}
+.flabel span{color:var(--warning);}
+textarea.ti,input.ti,select.ti{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:0.8rem;padding:0.7rem 0.9rem;outline:none;width:100%;transition:border-color 0.2s,box-shadow 0.2s;caret-color:var(--primary);resize:vertical;border-radius:8px;}
+textarea.ti:focus,input.ti:focus,select.ti:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light);}
+textarea.ti::placeholder{color:var(--text-muted);}
+select.ti option{background:var(--bg);color:var(--text);}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.ckrow{display:flex;align-items:center;gap:0.6rem;font-size:0.8rem;color:var(--text-secondary);cursor:pointer;}
+.ckrow input[type=checkbox]{accent-color:var(--primary);width:16px;height:16px;}
+.rbtn{background:var(--primary);border:1px solid var(--primary);color:white;font-family:var(--sans);font-size:0.8rem;padding:0.8rem 1.5rem;cursor:pointer;letter-spacing:0.01em;transition:all 0.2s;display:flex;align-items:center;gap:0.5rem;width:fit-content;text-transform:uppercase;border-radius:8px;box-shadow:var(--shadow);font-weight:500;}
+.rbtn:hover{background:var(--primary-hover);transform:translateY(-1px);box-shadow:var(--shadow-lg);}
+.rbtn:disabled{opacity:0.6;cursor:not-allowed;box-shadow:none;transform:none;}
+.rbox{flex:1;background:var(--bg-secondary);border:1px solid var(--border);font-family:var(--mono);font-size:0.75rem;line-height:1.6;padding:1.2rem;overflow-y:auto;white-space:pre-wrap;word-break:break-word;color:var(--text);min-height:200px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;position:relative;border-radius:8px;}
+.rempty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;color:var(--text-muted);font-size:0.8rem;text-align:center;pointer-events:none;}
+.rempty .bi{font-size:2rem;opacity:0.3;}
+.cplink{font-size:0.7rem;color:var(--primary);cursor:pointer;border:1px solid var(--primary);padding:0.3rem 0.8rem;border-radius:6px;transition:all 0.2s;font-weight:500;}
+.cplink:hover{color:white;background:var(--primary);}
+::-webkit-scrollbar{width:8px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted);}
+/* FORMATTED CONTENT */
+.mcont code{background:var(--bg-secondary);color:var(--text);padding:0.2rem 0.4rem;border-radius:4px;font-family:var(--mono);font-size:0.9em;border:1px solid var(--border);}
+.mcont pre{background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:1rem;margin:0.5rem 0;overflow-x:auto;}
+.mcont pre code{background:none;padding:0;border-radius:0;font-size:0.85em;line-height:1.5;}
+.mcont strong{color:var(--text);font-weight:600;}
+.mcont em{color:var(--text-secondary);font-style:italic;}
+.mcont h1,.mcont h2,.mcont h3{color:var(--text);font-family:var(--sans);font-weight:600;margin:1rem 0 0.5rem 0;}
+.mcont h1{font-size:1.4em;} .mcont h2{font-size:1.2em;} .mcont h3{font-size:1.1em;}
+.mcont ul,.mcont ol{margin:0.5rem 0;padding-left:1.5rem;}
+.mcont li{margin:0.3rem 0;}
+.mcont a{color:var(--primary);text-decoration:underline;}
+.mcont a:hover{color:var(--primary-hover);}
+/* SYNTAX HIGHLIGHTING */
+.rbox pre{background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:1rem;margin:0;overflow-x:auto;font-size:0.8em;line-height:1.5;white-space:pre;}
+.rbox code{background:none;color:var(--text);font-family:var(--mono);}
+/* YAML highlighting */
+.language-yaml .token.key{color:var(--primary);font-weight:500;}
+.language-yaml .token.string{color:var(--success);}
+.language-yaml .token.number{color:var(--danger);}
+.language-yaml .token.boolean{color:var(--warning);font-weight:bold;}
+.language-yaml .token.null{color:var(--text-muted);font-style:italic;}
+.language-yaml .token.comment{color:var(--text-muted);font-style:italic;}
+.language-yaml .token.list{color:var(--info);}
+.language-yaml .token.flow{color:var(--primary);}
+/* Enhanced YAML display */
+.rbox pre code.language-yaml{
+  background: 
+    linear-gradient(180deg, rgba(2,12,6,0.8) 0%, rgba(1,16,9,0.6) 100%),
+    repeating-linear-gradient(90deg, transparent, transparent 2ch, rgba(66,240,255,0.03) 2ch, rgba(66,240,255,0.03) 4ch);
+  border-left: 3px solid #42f0ff;
+  padding-left: 1rem;
+  position: relative;
+  font-size: 0.8em;
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 2;
+  border-radius: 6px;
+}
+.rbox pre code.language-yaml::before{
+  content: 'YAML';
+  position: absolute;
+  top: -0.5rem;
+  left: 0.5rem;
+  background: #42f0ff;
+  color: #020405;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.6em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(66, 240, 255, 0.3);
+}
+/* Dockerfile display */
+.rbox pre code.language-dockerfile{
+  background: linear-gradient(180deg, rgba(2,12,6,0.8) 0%, rgba(1,16,9,0.6) 100%);
+  border-left: 3px solid #42f0ff;
+  padding-left: 1rem;
+  position: relative;
+}
+.rbox pre code.language-dockerfile::before{
+  content: 'DOCKERFILE';
+  position: absolute;
+  top: -0.5rem;
+  left: 0.5rem;
+  background: #42f0ff;
+  color: #020405;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.6em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+/* HCL display */
+.rbox pre code.language-hcl{
+  background: linear-gradient(180deg, rgba(2,12,6,0.8) 0%, rgba(1,16,9,0.6) 100%);
+  border-left: 3px solid #ffb300;
+  padding-left: 1rem;
+  position: relative;
+}
+.rbox pre code.language-hcl::before{
+  content: 'TERRAFORM';
+  position: absolute;
+  top: -0.5rem;
+  left: 0.5rem;
+  background: #ffb300;
+  color: #020405;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.6em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}</style>
+</head>
+<body>
+
+<div id="boot">
+  <div class="boot-title">AI DevOps Assistant</div>
+  <div class="boot-sub">Intelligent Infrastructure & CI/CD Automation Platform</div>
+  <div class="boot-log" id="boot-log"></div>
+  <div class="pbar"><div class="pfill" id="pfill"></div></div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="sys-title">AI DevOps Assistant</div>
+      <span style="font-size:0.75rem;color:var(--text-secondary);letter-spacing:0.01em;">ONLINE</span>
+    </div>
+    <div class="tb-center">
+      INTELLIGENT INFRASTRUCTURE & CI/CD AUTOMATION<br>
+      <span style="font-size:0.7rem;letter-spacing:0.02em;">GROQ · FASTAPI · DOCKER · KUBERNETES</span>
+    </div>
+    <div class="tb-right">
+      <div class="stat-pill"><div class="sdot"></div><span>API ACTIVE</span></div>
+      <span id="clock">--:--:--</span>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <nav class="sidebar">
+      <div class="sb-sec">// NAVIGATION</div>
+      <div class="ni active" onclick="sw('home',this)"><span>DASHBOARD</span><span class="nb">01</span></div>
+      <div class="ni" onclick="sw('chat',this)"><span>CHAT ASSISTANT</span><span class="nb">02</span></div>
+      <div class="ni" onclick="sw('logs',this)"><span>LOG ANALYZER</span><span class="nb">03</span></div>
+      <div class="ni" onclick="sw('pipe',this)"><span>PIPELINE GEN</span><span class="nb">04</span></div>
+      <div class="ni" onclick="sw('infra',this)"><span>INFRA GEN</span><span class="nb">05</span></div>
+      <div class="ni" onclick="sw('project',this)"><span>PROJECT GEN</span><span class="nb">06</span></div>
+      <div class="sdiv"></div>
+      <div class="sb-sec">// SYSTEM</div>
+      <div class="ni" onclick="window.open('http://localhost:8000/docs','_blank')"><span>API DOCS</span><span class="nb">↗</span></div>
+      <div class="ni" onclick="chkHealth()"><span>HEALTH CHECK</span></div>
+      <div class="sys-info">
+        MODEL: llama-3.3-70b<br>
+        API: localhost:8000<br>
+        STATUS: <span style="color:var(--success)">ACTIVE</span><br>
+        UPTIME: <span id="uptime">00:00:00</span>
+      </div>
+    </nav>
+
+    <div class="panel-area">
+
+      <!-- HOME -->
+      <div class="panel active" id="panel-home">
+        <div class="ph">
+          <div class="ph-path">~/ <span>dashboard</span></div>
+          <div class="ph-title">SYSTEM OVERVIEW<span class="cblink"></span></div>
+        </div>
+        <div class="home-body">
+          <pre class="ascii"> ██████╗ ███████╗██╗   ██╗ ██████╗ ██████╗ ███████╗     █████╗ ██╗
+ ██╔══██╗██╔════╝██║   ██║██╔═══██╗██╔══██╗██╔════╝    ██╔══██╗██║
+ ██║  ██║█████╗  ██║   ██║██║   ██║██████╔╝███████╗    ███████║██║
+ ██║  ██║██╔══╝  ╚██╗ ██╔╝██║   ██║██╔═══╝ ╚════██║    ██╔══██║██║
+ ██████╔╝███████╗ ╚████╔╝ ╚██████╔╝██║     ███████║    ██║  ██║██║
+ ╚═════╝ ╚══════╝  ╚═══╝   ╚═════╝ ╚═╝     ╚══════╝    ╚═╝  ╚═╝╚═╝</pre>
+          <div class="home-tag">// POWERED BY GROQ + LLAMA 3.3-70B — ZERO LATENCY AI FOR DEVOPS //</div>
+          <div class="mgrid">
+            <div class="mc" onclick="sw('chat',null)">
+              <div class="mcid">MODULE::01</div>
+              <div class="mct">CHAT_AGENT</div>
+              <div class="mcd">Natural language DevOps assistant. Docker, CI/CD, debugging, anything.</div>
+              <div class="mca">→</div>
+            </div>
+            <div class="mc" onclick="sw('logs',null)">
+              <div class="mcid">MODULE::02</div>
+              <div class="mct">LOG_ANALYZER</div>
+              <div class="mcd">Paste raw logs — instant root cause analysis + fix commands.</div>
+              <div class="mca">→</div>
+            </div>
+            <div class="mc" onclick="sw('pipe',null)">
+              <div class="mcid">MODULE::03</div>
+              <div class="mct">PIPELINE_GEN</div>
+              <div class="mcd">Generate production GitHub Actions / GitLab CI pipelines.</div>
+              <div class="mca">→</div>
+            </div>
+            <div class="mc" onclick="sw('infra',null)">
+              <div class="mcid">MODULE::04</div>
+              <div class="mct">INFRA_GEN</div>
+              <div class="mcd">Describe your app — get Dockerfiles, docker-compose, K8s manifests.</div>
+              <div class="mca">→</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHAT -->
+      <div class="panel" id="panel-chat">
+        <div class="ph">
+          <div class="ph-path">~/ <span>chat_agent</span></div>
+          <div class="ph-title">INTERACTIVE SHELL<span class="cblink"></span></div>
+        </div>
+        <div class="chat-body" id="chat-body">
+          <div class="msg bot">
+            <div class="mmeta"><span class="mtag">[AI::AGENT]</span><span class="mts">READY</span></div>
+            <div class="mcont">System initialized. AI DevOps co-pilot online.
+
+Ask me anything — Docker, CI/CD, debugging, infrastructure.
+Direct answers with working commands. No theory.
+
+Select a quick command below or type your query.</div>
+          </div>
+        </div>
+        <div class="chat-prompts">
+          <div class="qpc" onclick="qp('How do I shrink my Docker image size?')">$ docker optimize</div>
+          <div class="qpc" onclick="qp('Debug a container that keeps crashing')">$ debug crash</div>
+          <div class="qpc" onclick="qp('What is docker-compose and how does it work?')">$ explain compose</div>
+          <div class="qpc" onclick="qp('How to use environment variables in Docker?')">$ env vars</div>
+          <div class="qpc" onclick="qp('Docker networking explained with examples')">$ docker network</div>
+        </div>
+        <div class="chat-ir">
+          <div class="iprompt">root@devops:~$</div>
+          <textarea class="ci" id="ci" placeholder="enter command..." rows="1"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
+            oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+          <button class="xbtn" id="xbtn" onclick="sendChat()">[ EXECUTE ]</button>
+        </div>
+      </div>
+
+      <!-- LOGS -->
+      <div class="panel" id="panel-logs">
+        <div class="ph">
+          <div class="ph-path">~/ <span>log_analyzer</span></div>
+          <div class="ph-title">LOG ANALYSIS MODULE<span class="cblink"></span></div>
+        </div>
+        <div class="tool-layout">
+          <div class="tpane">
+            <div class="paneh"><span class="ptitle">// INPUT STREAM</span><span>stdin</span></div>
+            <div class="pbody">
+              <div><div class="flabel">LOG DATA <span>*required</span></div>
+                <textarea class="ti" id="log-in" rows="9" placeholder="Paste error output here...
+
+Docker error:
+Error response from daemon: Ports are not available
+
+GitHub Actions failure:
+Error: buildx failed with exit code 1
+
+kubectl error:
+CrashLoopBackOff: back-off restarting failed container"></textarea>
+              </div>
+              <div><div class="flabel">CONTEXT <span style="color:var(--dim)">[optional]</span></div>
+                <input class="ti" id="log-ctx" type="text" placeholder="e.g. docker compose up, GitHub Actions...">
+              </div>
+              <button class="rbtn" id="log-btn" onclick="runLogs()">▶ EXECUTE ANALYSIS</button>
+            </div>
+          </div>
+          <div class="tpane">
+            <div class="paneh"><span class="ptitle">// ANALYSIS OUTPUT</span><span class="cplink" onclick="copyEl('log-out')">[ COPY ]</span></div>
+            <div class="pbody">
+              <div class="rbox" id="log-out">
+                <div class="rempty"><div class="bi">_</div><div>AWAITING LOG INPUT<br><span style="font-size:0.6rem;">paste logs → execute analysis</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PIPELINE -->
+      <div class="panel" id="panel-pipe">
+        <div class="ph">
+          <div class="ph-path">~/ <span>pipeline_gen</span></div>
+          <div class="ph-title">PIPELINE GENERATOR<span class="cblink"></span></div>
+        </div>
+        <div class="tool-layout">
+          <div class="tpane">
+            <div class="paneh"><span class="ptitle">// CONFIGURATION</span><span>params</span></div>
+            <div class="pbody">
+              <div class="r2">
+                <div><div class="flabel">LANGUAGE</div>
+                  <select class="ti" id="p-lang"><option>Python</option><option>Node.js</option><option>Go</option><option>Java</option><option>Rust</option></select>
+                </div>
+                <div><div class="flabel">FRAMEWORK</div>
+                  <input class="ti" id="p-fw" type="text" placeholder="FastAPI, Express...">
+                </div>
+              </div>
+              <div class="r2">
+                <div><div class="flabel">PLATFORM</div>
+                  <select class="ti" id="p-plat"><option value="github-actions">GitHub Actions</option><option value="gitlab-ci">GitLab CI</option><option value="jenkins">Jenkins</option></select>
+                </div>
+                <div><div class="flabel">DEPLOY TARGET</div>
+                  <select class="ti" id="p-dep"><option value="docker-compose">Docker Compose</option><option value="kubernetes">Kubernetes</option><option value="ecs">AWS ECS</option><option value="none">Build only</option></select>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0.35rem;padding:0.1rem 0;">
+                <label class="ckrow"><input type="checkbox" id="p-test" checked>Tests + linting</label>
+                <label class="ckrow"><input type="checkbox" id="p-dock" checked>Docker build + push</label>
+                <label class="ckrow"><input type="checkbox" id="p-sec" checked>Trivy security scan</label>
+              </div>
+              <div><div class="flabel">EXTRA REQUIREMENTS</div>
+                <textarea class="ti" id="p-req" rows="3" placeholder="Slack notify on fail, staging deploy..."></textarea>
+              </div>
+              <button class="rbtn" id="pipe-btn" onclick="runPipe()">▶ GENERATE PIPELINE</button>
+            </div>
+          </div>
+          <div class="tpane">
+            <div class="paneh"><span class="ptitle">// YAML OUTPUT</span><span class="cplink" onclick="copyEl('p-out')">[ COPY ]</span></div>
+            <div class="pbody">
+              <div class="rbox" id="p-out">
+                <div class="rempty"><div class="bi">_</div><div>AWAITING CONFIG<br><span style="font-size:0.6rem;">set params → generate</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INFRA -->
+      <div class="panel" id="panel-infra">
+        <div class="ph">
+          <div class="ph-path">~/ <span>infra_gen</span></div>
+          <div class="ph-title">INFRASTRUCTURE GENERATOR<span class="cblink"></span></div>
+        </div>
+        <div class="tool-layout">
+          <div class="tpane">
+            <div class="paneh"><span class="ptitle">// SPEC INPUT</span><span>config</span></div>
+            <div class="pbody">
+              <div><div class="flabel">ARTIFACT TYPE</div>
+                <select class="ti" id="i-type"><option value="dockerfile">Dockerfile</option><option value="docker-compose">docker-compose.yml</option><option value="k8s-manifests">Kubernetes Manifests</option><option value="helm-chart">Helm Chart</option><option value="terraform">Terraform</option></select>
+              </div>
+              <div><div class="flabel">APP DESCRIPTION <span>*required</span></div>
+                <textarea class="ti" id="i-desc" rows="4" placeholder="Describe in plain English...
+
+e.g. Python FastAPI app connecting to PostgreSQL and Redis. Handles file uploads."></textarea>
+              </div>
+              <div class="r2">
+                <div><div class="flabel">LANGUAGE</div><input class="ti" id="i-lang" type="text" placeholder="Python"></div>
+                <div><div class="flabel">PORT</div><input class="ti" id="i-port" type="number" value="8000"></div>
+              </div>
+              <div><div class="flabel">EXTRA REQUIREMENTS</div>
+                <textarea class="ti" id="i-req" rows="2" placeholder="non-root user, alpine base, health check..."></textarea>
+              </div>
+              <button class="rbtn" id="infra-btn" onclick="runInfra()">▶ GENERATE INFRASTRUCTURE</button>
+            </div>
+          </div>
+          <div class="tpane">
+            <div class="paneh"><span class="ptitle">// GENERATED CODE</span><span class="cplink" onclick="copyEl('i-out')">[ COPY ]</span></div>
+            <div class="pbody">
+              <div class="rbox" id="i-out">
+                <div class="rempty"><div class="bi">_</div><div>AWAITING SPEC<br><span style="font-size:0.6rem;">describe app → generate</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROJECT -->
+      <div class="panel" id="panel-project">
+        <div class="ph">
+          <div class="ph-path">~/ <span>project_gen</span></div>
+          <div class="ph-title">PROJECT GENERATOR<span class="cblink"></span></div>
+        </div>
+        <div class="tool-layout">
+          <div class="tpane">
+            <div class="paneh"><span class="ptitle">// PROJECT SPEC</span><span>description</span></div>
+            <div class="pbody">
+              <div><div class="flabel">PROJECT DESCRIPTION <span>*required</span></div>
+                <textarea class="ti" id="p-desc" rows="6" placeholder="Describe your complete project in natural language...
+
+e.g. 'Create a full-stack web app with React frontend, Node.js API, PostgreSQL database, and Docker deployment. Include user authentication, CRUD operations for blog posts, and CI/CD pipeline.'"></textarea>
+              </div>
+              <div class="r2">
+                <div><div class="flabel">TECH STACK</div>
+                  <select class="ti" id="p-stack">
+                    <option value="auto">Auto-detect from description</option>
+                    <option value="react-node">React + Node.js</option>
+                    <option value="vue-nest">Vue.js + NestJS</option>
+                    <option value="angular-spring">Angular + Spring Boot</option>
+                    <option value="nextjs">Next.js Full-stack</option>
+                    <option value="fastapi-react">FastAPI + React</option>
+                    <option value="django-react">Django + React</option>
+                    <option value="flask-vue">Flask + Vue.js</option>
+                  </select>
+                </div>
+                <div><div class="flabel">COMPLEXITY</div>
+                  <select class="ti" id="p-complexity">
+                    <option value="minimal">Minimal (basic structure)</option>
+                    <option value="standard">Standard (production-ready)</option>
+                    <option value="advanced">Advanced (enterprise features)</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0.35rem;padding:0.1rem 0;">
+                <label class="ckrow"><input type="checkbox" id="p-docker" checked>Docker setup</label>
+                <label class="ckrow"><input type="checkbox" id="p-git" checked>Git repository</label>
+                <label class="ckrow"><input type="checkbox" id="p-tests" checked>Unit tests</label>
+                <label class="ckrow"><input type="checkbox" id="p-docs" checked>Documentation</label>
+                <label class="ckrow"><input type="checkbox" id="p-deploy" checked>Deployment config</label>
+              </div>
+              <div><div class="flabel">ADDITIONAL FEATURES</div>
+                <textarea class="ti" id="p-features" rows="3" placeholder="Authentication, file uploads, real-time features, admin panel, API documentation, monitoring..."></textarea>
+              </div>
+              <button class="rbtn" id="project-btn" onclick="runProject()">▶ GENERATE PROJECT</button>
+            </div>
+          </div>
+          <div class="tpane">
+            <div class="paneh"><span class="ptitle">// PROJECT FILES</span><span class="cplink" onclick="downloadProject()">[ DOWNLOAD ]</span></div>
+            <div class="pbody">
+              <div class="rbox" id="p-out">
+                <div class="rempty"><div class="bi">_</div><div>AWAITING DESCRIPTION<br><span style="font-size:0.6rem;">describe project → generate files</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const API='http://localhost:8000';
+const bootLines=[
+  {c:'info',t:'Initializing DEVOPS//AI Intelligence System...'},
+  {c:'load',t:'Loading LLM runtime [groq:llama-3.3-70b-versatile]'},
+  {c:'ok',  t:'Neural inference engine ONLINE'},
+  {c:'load',t:'Connecting FastAPI backend localhost:8000'},
+  {c:'ok',  t:'API gateway CONNECTED'},
+  {c:'load',t:'Mounting agent modules [chat, logs, pipeline, infra]'},
+  {c:'ok',  t:'chat_agent LOADED'},
+  {c:'ok',  t:'log_analyzer LOADED'},
+  {c:'ok',  t:'pipeline_gen LOADED'},
+  {c:'ok',  t:'infra_gen LOADED'},
+  {c:'ok',  t:'CRT filters active. All systems nominal.'},
+];
+let bi=0;
+const blog=document.getElementById('boot-log'),pfill=document.getElementById('pfill');
+function bootStep(){
+  if(bi>=bootLines.length){pfill.style.width='100%';setTimeout(()=>{document.getElementById('boot').classList.add('hidden');document.getElementById('app').classList.add('visible');},400);return;}
+  const l=bootLines[bi];const el=document.createElement('div');el.className='bl '+l.c;el.textContent=l.t;blog.appendChild(el);
+  pfill.style.width=((bi+1)/bootLines.length*100)+'%';bi++;
+  setTimeout(bootStep,100+Math.random()*70);
+}
+setTimeout(bootStep,300);
+
+const st=Date.now();
+function tick(){
+  const n=new Date();document.getElementById('clock').textContent=n.toTimeString().slice(0,8);
+  const u=Math.floor((Date.now()-st)/1000);
+  document.getElementById('uptime').textContent=
+    String(Math.floor(u/3600)).padStart(2,'0')+':'+String(Math.floor((u%3600)/60)).padStart(2,'0')+':'+String(u%60).padStart(2,'0');
+}
+setInterval(tick,1000);tick();
+
+function sw(name,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if(el){el.classList.add('active');}
+  else{document.querySelectorAll('.ni').forEach(n=>{if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+name+"'"))n.classList.add('active');});}
+}
+
+async function chkHealth(){
+  try{await fetch(API+'/health');document.querySelector('.sys-info').innerHTML='MODEL: llama-3.3-70b<br>API: localhost:8000<br>STATUS: <span style="color:var(--green)">NOMINAL</span><br>UPTIME: <span id="uptime">--</span>';}
+  catch{document.querySelector('.sys-info').innerHTML='MODEL: llama-3.3-70b<br>API: localhost:8000<br>STATUS: <span style="color:var(--red)">OFFLINE</span>';}
+}
+
+let hist=[];
+function qp(m){document.getElementById('ci').value=m;sendChat();}
+function ts(){return new Date().toTimeString().slice(0,8);}
+
+function formatResponse(text){
+  // Escape HTML first
+  text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  
+  // Format code blocks (```language\ncode\n```)
+  text = text.replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, lang, code) => {
+    const language = lang ? ` class="language-${lang}"` : '';
+    return `<pre><code${language}>${code.trim()}</code></pre>`;
+  });
+  
+  // Format inline code (`code`)
+  text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  
+  // Format bold (**text** or __text__)
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/__(.*?)__/g, '<strong>$1</strong>');
+  
+  // Format italic (*text* or _text_)
+  text = text.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+  text = text.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+  
+  // Format lists (- item or * item)
+  text = text.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
+  text = text.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+  
+  // Format numbered lists (1. item)
+  text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+  text = text.replace(/(<li>.*<\/li>\n?)+/g, '<ol>$&</ol>');
+  
+  // Format headers (# Header)
+  text = text.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+  text = text.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+  text = text.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+  
+  // Format links [text](url)
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  
+  // Format line breaks
+  text = text.replace(/\n/g, '<br>');
+  
+  return text;
+}
+
+function highlightYAML(text){
+  // Preserve line breaks and indentation
+  let lines = text.split('\n');
+  let highlighted = [];
+  
+  for(let line of lines){
+    let processed = line;
+    
+    // Handle comments first (they override other highlighting)
+    if(processed.trim().startsWith('#')){
+      processed = '<span style="color:#666;font-style:italic">' + processed + '</span>';
+    }else{
+      // Handle list items (-)
+      processed = processed.replace(/^(\s*)-(\s*)/, '$1<span style="color:#9d6cff">-</span>$2');
+      
+      // Handle keys (word followed by colon)
+      processed = processed.replace(/(\w+)(\s*):(\s*)/g, '<span style="color:#42f0ff">$1</span>$2:$3');
+      
+      // Handle string values (quoted)
+      processed = processed.replace(/:\s*(".*?"|'.*?')/g, ': <span style="color:#8cff8c">$1</span>');
+      
+      // Handle boolean values
+      processed = processed.replace(/:\s*(true|false|yes|no|on|off)/gi, ': <span style="color:#ffb300">$1</span>');
+      
+      // Handle null values
+      processed = processed.replace(/:\s*(null|~)/gi, ': <span style="color:#ff5050">$1</span>');
+      
+      // Handle numbers
+      processed = processed.replace(/:\s*(\d+\.?\d*)/g, ': <span style="color:#ffb300">$1</span>');
+      
+      // Handle unquoted strings (anything after colon that's not already highlighted)
+      processed = processed.replace(/:\s*([^{}\[\],&\*#\|>]+?)(?:\s*#|$)/g, function(match, value) {
+        if(!value.match(/<span/)){ // Don't double-highlight
+          return ': <span style="color:#8cff8c">' + value + '</span>';
+        }
+        return match;
+      });
+      
+      // Handle anchors (&anchor) and aliases (*alias)
+      processed = processed.replace(/(\s+)(&[\w-]+\s*)/g, '$1<span style="color:#ff5050">$2</span>');
+      processed = processed.replace(/(\s+)(\*[\w-]+\s*)/g, '$1<span style="color:#ff5050">$2</span>');
+      
+      // Handle flow style objects {key: value}
+      processed = processed.replace(/\{([^}]+)\}/g, function(match, content) {
+        return '{<span style="color:#42f0ff">' + content.replace(/(\w+):/g, '$1</span>:<span style="color:#8cff8c">').replace(/,\s*/g, '</span>, <span style="color:#42f0ff">') + '</span>}';
+      });
+      
+      // Handle flow style arrays [item1, item2]
+      processed = processed.replace(/\[([^\]]+)\]/g, function(match, content) {
+        return '[<span style="color:#8cff8c">' + content.replace(/,\s*/g, '</span>, <span style="color:#8cff8c">') + '</span>]';
+      });
+    }
+    
+    highlighted.push(processed);
+  }
+  
+  return highlighted.join('\n');
+}
+
+function highlightDockerfile(text){
+  let lines = text.split('\n');
+  let highlighted = [];
+  
+  for(let line of lines){
+    let processed = line;
+    
+    // Handle comments
+    if(processed.trim().startsWith('#')){
+      processed = '<span style="color:#666;font-style:italic">' + processed + '</span>';
+    }else{
+      // Handle instructions
+      processed = processed.replace(/^(FROM|RUN|COPY|ADD|WORKDIR|EXPOSE|ENV|ARG|CMD|ENTRYPOINT|USER|LABEL|VOLUME|MAINTAINER)/i, 
+        '<span style="color:#42f0ff;font-weight:bold">$1</span>');
+      
+      // Handle quoted strings
+      processed = processed.replace(/(".*?"|'.*?')/g, '<span style="color:#8cff8c">$1</span>');
+      
+      // Handle environment variables
+      processed = processed.replace(/(\$[A-Z_][A-Z0-9_]*|\$\{[^}]+\})/gi, '<span style="color:#ffb300">$1</span>');
+      
+      // Handle ports and numbers
+      processed = processed.replace(/(\d+)/g, '<span style="color:#ffb300">$1</span>');
+    }
+    
+    highlighted.push(processed);
+  }
+  
+  return highlighted.join('\n');
+}
+
+function highlightHCL(text){
+  let lines = text.split('\n');
+  let highlighted = [];
+  
+  for(let line of lines){
+    let processed = line;
+    
+    // Handle comments
+    if(processed.trim().startsWith('#') || processed.trim().startsWith('//')){
+      processed = '<span style="color:#666;font-style:italic">' + processed + '</span>';
+    }else{
+      // Handle block types
+      processed = processed.replace(/\b(resource|variable|output|provider|module|data|locals|terraform)\b/g, 
+        '<span style="color:#ffb300;font-weight:bold">$1</span>');
+      
+      // Handle resource types and names
+      processed = processed.replace(/"([^"]+)"\s+"([^"]+)"/g, '"<span style="color:#42f0ff">$1</span>" "<span style="color:#8cff8c">$2</span>"');
+      
+      // Handle attribute names
+      processed = processed.replace(/(\w+)(\s*=)/g, '<span style="color:#42f0ff">$1</span>$2');
+      
+      // Handle quoted strings
+      processed = processed.replace(/=\s*(".*?"|'.*?')/g, '= <span style="color:#8cff8c">$1</span>');
+      
+      // Handle numbers and booleans
+      processed = processed.replace(/=\s*(true|false|\d+\.?\d*)/gi, '= <span style="color:#ffb300">$1</span>');
+      
+      // Handle references
+      processed = processed.replace(/\b(var|local|data|module)\.[\w.]+/g, '<span style="color:#9d6cff">$&</span>');
+    }
+    
+    highlighted.push(processed);
+  }
+  
+  return highlighted.join('\n');
+}
+
+function formatToolOutput(text, outId){
+  // Escape HTML
+  text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  
+  // Determine output type based on outId
+  let isCode = false;
+  let language = '';
+  
+  if(outId === 'p-out'){ // Pipeline output - YAML
+    isCode = true;
+    language = 'yaml';
+    text = highlightYAML(text);
+  }else if(outId === 'i-out'){ // Infra output - Docker/K8s/Terraform
+    isCode = true;
+    if(text.includes('FROM ') || text.includes('dockerfile')){ 
+      language = 'dockerfile'; 
+      text = highlightDockerfile(text); 
+    }
+    else if(text.includes('apiVersion:') || text.includes('kind:') || text.includes('metadata:') || /^\s*[\w-]+\s*:/m.test(text)){ 
+      language = 'yaml'; 
+      text = highlightYAML(text); 
+    }
+    else if(text.includes('resource ') || text.includes('terraform') || text.includes('variable ') || text.includes('output ')){ 
+      language = 'hcl'; 
+      text = highlightHCL(text); 
+    }
+  }else if(outId === 'log-out'){ // Log analysis - mixed
+    // Keep as formatted text but highlight commands
+    text = text.replace(/(\$\s+[^\n]+)/g, '<span style="color:#42f0ff;font-weight:bold">$1</span>');
+    text = text.replace(/(docker|kubectl|git|npm|yarn|pip)[^\n]*/g, '<span style="color:#ffb300">$&</span>');
+    text = text.replace(/ERROR|FAILED|FAIL/g, '<span style="color:#ff5050;font-weight:bold">$&</span>');
+    text = text.replace(/SUCCESS|OK|PASS/g, '<span style="color:#8cff8c;font-weight:bold">$&</span>');
+    text = text.replace(/\n/g, '<br>');
+    return text;
+  }
+  
+  if(isCode){
+    return `<pre><code class="language-${language}">${text}</code></pre>`;
+  }
+  
+  // Default formatting
+  text = text.replace(/\n/g, '<br>');
+  return text;
+}
+
+async function sendChat(){
+  const inp=document.getElementById('ci');const msg=inp.value.trim();if(!msg)return;
+  inp.value='';inp.style.height='auto';document.getElementById('xbtn').disabled=true;
+  addMsg('user',msg);hist.push({role:'user',content:msg});const typ=addTyping();
+  try{
+    const res=await fetch(API+'/api/chat/ask',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:msg,history:hist.slice(-8),stream:true})});
+    typ.remove();const bd=addMsg('bot','');const mc=bd.querySelector('.mcont');let full='';
+    const reader=res.body.getReader();const dec=new TextDecoder();
+    while(true){const{done,value}=await reader.read();if(done)break;
+      for(const line of dec.decode(value).split('\n')){
+        if(line.startsWith('data: ')&&line!=='data: [DONE]'){full+=line.slice(6);mc.innerHTML=formatResponse(full);document.getElementById('chat-body').scrollTop=99999;}
+      }
+    }
+    hist.push({role:'assistant',content:full});
+  }catch(e){typ.remove();addMsg('bot','<span style="color:#ff5050;font-weight:bold">[CONNECTION ERROR]</span><br>Cannot reach backend at localhost:8000<br><br><strong>Possible solutions:</strong><br>• Ensure <code>docker-compose up</code> is running<br>• Check if port 8000 is available<br>• Verify GROQ_API_KEY is set in environment<br><br>Error: '+e.message);}
+  document.getElementById('xbtn').disabled=false;
+}
+
+function addMsg(role,text){
+  const b=document.getElementById('chat-body');const d=document.createElement('div');d.className='msg '+role;
+  const tag=role==='user'?'[USER::INPUT]':'[AI::AGENT]';
+  const time=ts();
+  const formattedText = role==='bot' ? formatResponse(text) : text.replace(/\n/g, '<br>');
+  d.innerHTML=`<div class="mmeta"><span class="mtag">${tag}</span><span class="mts">${time}</span></div><div class="mcont">${formattedText}</div>`;
+  b.appendChild(d);b.scrollTop=99999;return d;
+}
+
+function addTyping(){
+  const b=document.getElementById('chat-body');const d=document.createElement('div');d.className='msg bot';
+  d.innerHTML=`<div class="mmeta"><span class="mtag">[AI::AGENT]</span><span class="mts">GENERATING...</span></div><div class="typing-i"><span></span><span></span><span></span></div>`;
+  b.appendChild(d);b.scrollTop=99999;return d;
+}
+
+async function stream(url,payload,outId,btnId,lbl){
+  const out=document.getElementById(outId),btn=document.getElementById(btnId);
+  btn.disabled=true;btn.textContent='PROCESSING...';out.innerHTML='<span style="color:var(--green3)">Initializing...</span>';
+  try{
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    let full='';const reader=res.body.getReader();const dec=new TextDecoder();out.innerHTML='';
+    while(true){const{done,value}=await reader.read();if(done)break;
+      for(const line of dec.decode(value).split('\n')){
+        if(line.startsWith('data: ')&&line!=='data: [DONE]'){full+=line.slice(6);out.innerHTML=formatToolOutput(full, outId);out.scrollTop=out.scrollHeight;}
+      }
+    }
+  }catch(e){out.innerHTML='<span style="color:#ff5050;font-weight:bold">[CONNECTION ERROR]</span><br>Cannot connect to AI backend<br><br><strong>Troubleshooting:</strong><br>• Run <code>docker-compose up -d</code><br>• Check <code>docker ps</code> for running containers<br>• Verify API key is configured<br><br>Details: '+e.message;}
+  btn.disabled=false;btn.textContent=lbl;
+}
+
+function runLogs(){
+  const logs=document.getElementById('log-in').value.trim();if(!logs){alert('Paste logs first.');return;}
+  stream(API+'/api/logs/analyze',{logs,context:document.getElementById('log-ctx').value||null,stream:true},'log-out','log-btn','▶ EXECUTE ANALYSIS');
+}
+
+function runPipe(){
+  stream(API+'/api/pipeline/generate',{
+    app_language:document.getElementById('p-lang').value,
+    app_framework:document.getElementById('p-fw').value||null,
+    platform:document.getElementById('p-plat').value,
+    deploy_target:document.getElementById('p-dep').value,
+    include_tests:document.getElementById('p-test').checked,
+    include_docker_build:document.getElementById('p-dock').checked,
+    include_security_scan:document.getElementById('p-sec').checked,
+    custom_requirements:document.getElementById('p-req').value||null,
+    stream:true
+  },'p-out','pipe-btn','▶ GENERATE PIPELINE');
+}
+
+function runInfra(){
+  const desc=document.getElementById('i-desc').value.trim();if(!desc){alert('Describe your app first.');return;}
+  stream(API+'/api/infra/generate',{
+    artifact_type:document.getElementById('i-type').value,
+    description:desc,
+    app_language:document.getElementById('i-lang').value||null,
+    app_port:parseInt(document.getElementById('i-port').value)||8000,
+    custom_requirements:document.getElementById('i-req').value||null,
+    stream:true
+  },'i-out','infra-btn','▶ GENERATE INFRASTRUCTURE');
+}
+
+function runProject(){
+  const desc=document.getElementById('p-desc').value.trim();if(!desc){alert('Describe your project first.');return;}
+  stream(API+'/api/project/generate',{
+    description:desc,
+    tech_stack:document.getElementById('p-stack').value,
+    complexity:document.getElementById('p-complexity').value,
+    include_docker:document.getElementById('p-docker').checked,
+    include_git:document.getElementById('p-git').checked,
+    include_tests:document.getElementById('p-tests').checked,
+    include_docs:document.getElementById('p-docs').checked,
+    include_deployment:document.getElementById('p-deploy').checked,
+    additional_features:document.getElementById('p-features').value||null,
+    stream:true
+  },'p-out','project-btn','▶ GENERATE PROJECT');
+}
+
+function downloadProject(){
+  const content = document.getElementById('p-out').textContent;
+  if(!content || content.includes('AWAITING DESCRIPTION')){alert('Generate a project first.');return;}
+  
+  // Create a blob with the project files
+  const blob = new Blob([content], {type: 'application/zip'});
+  const url = URL.createObjectURL(blob);
+  
+  // Create download link
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'generated-project.zip';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function copyEl(id){
+  navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{
+    const e=event.target;e.textContent='[ COPIED ]';setTimeout(()=>e.textContent='[ COPY ]',1500);
+  });
+}
+</script>
+</body>
+</html>

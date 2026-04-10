@@ -1,0 +1,192 @@
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-devops
+  labels:
+    app.kubernetes.io/name: ai-devops
+
+---
+# Secret (reference only — use External Secrets Operator or Vault in production)
+# kubectl create secret generic ai-devops-secrets \
+#   --from-literal=GROQ_API_KEY=<your-key> \
+#   -n ai-devops
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ai-devops-secrets
+  namespace: ai-devops
+type: Opaque
+# data:
+#   GROQ_API_KEY: <base64-encoded-key>
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-devops-backend
+  namespace: ai-devops
+  labels:
+    app.kubernetes.io/name: ai-devops
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-devops-backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: ai-devops-backend
+        version: "1.0.0"
+    spec:
+      # Security context: run as non-root
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+
+      containers:
+        - name: backend
+          image: ghcr.io/your-username/ai-devops/backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+
+          env:
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-devops-secrets
+                  key: GROQ_API_KEY
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+      terminationGracePeriodSeconds: 30
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-devops-backend
+  namespace: ai-devops
+  labels:
+    app.kubernetes.io/name: ai-devops
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-devops-backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ai-devops-backend-hpa
+  namespace: ai-devops
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ai-devops-backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-devops-ingress
+  namespace: ai-devops
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # Enable for TLS: cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: ai-devops.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-devops-backend
+                port:
+                  number: 8000
+  # Uncomment for TLS:
+  # tls:
+  #   - hosts:
+  #       - ai-devops.example.com
+  #     secretName: ai-devops-tls
+
+---
+# Pod Disruption Budget — ensures at least 1 pod is always running
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-devops-pdb
+  namespace: ai-devops
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-devops-backend
