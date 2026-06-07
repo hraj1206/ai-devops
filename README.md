@@ -7,21 +7,22 @@
 [![CI/CD](https://github.com/hraj1206/ai-devops/actions/workflows/ci.yml/badge.svg)](https://github.com/hraj1206/ai-devops/actions)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com)
+[![Groq](https://img.shields.io/badge/Groq-LLaMA_3.3--70B-FF6600.svg)](https://groq.com)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg)](https://docker.com)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-native-326CE5.svg)](https://kubernetes.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[**Quick Start**](#-quick-start) • [**Features**](#-features) • [**CLI Usage**](#-cli-usage) • [**API Docs**](#-api-reference) • [**Deploy**](#-deploy-to-kubernetes) • [**Roadmap**](#-roadmap)
+[**Quick Start**](#-quick-start) • [**Features**](#-features) • [**Web UI**](#-web-ui) • [**CLI Usage**](#-cli-usage) • [**API Docs**](#-api-reference) • [**Deploy**](#%EF%B8%8F-deploy-to-kubernetes) • [**Roadmap**](#%EF%B8%8F-roadmap)
 
 </div>
 
 ---
 
-## Why This Exists
+## 💡 Why This Exists
 
 DevOps engineers spend hours every week doing the same things: Googling why a pod is crashing, writing boilerplate Dockerfiles, copying CI/CD YAML from Stack Overflow, and staring at cryptic error logs.
 
-**AI DevOps Helper** puts an expert DevOps engineer in your terminal. One command to debug a crash, generate a production-grade pipeline, or create Kubernetes manifests that actually follow best practices.
+**AI DevOps Helper** puts an expert DevOps engineer in your terminal *and* browser. One command — or one click — to debug a crash, generate a production-grade pipeline, scaffold an entire project, or create Kubernetes manifests that actually follow best practices.
 
 ```bash
 # Debug a crashing pod in seconds
@@ -36,10 +37,25 @@ aiops ask "What's the safest way to drain a node during maintenance?"
 
 ---
 
+## 🏗️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **AI / LLM** | [Groq](https://groq.com) — LLaMA 3.3-70B Versatile (ultra-low latency inference) |
+| **Backend** | [FastAPI](https://fastapi.tiangolo.com) 0.115 — async REST API with SSE streaming |
+| **CLI** | [Typer](https://typer.tiangolo.com) + [Rich](https://rich.readthedocs.io) — beautiful terminal UX |
+| **Frontend** | Single-page Web UI (vanilla HTML/CSS/JS) with animated boot sequence |
+| **Containerization** | Docker multi-stage builds, Docker Compose |
+| **Orchestration** | Kubernetes (Deployment, HPA, PDB, Ingress) |
+| **CI/CD** | GitHub Actions (self-hosted pipeline) |
+| **Language** | Python 3.12 |
+
+---
+
 ## ✨ Features
 
 ### 💬 DevOps Chat Assistant
-Ask anything about Kubernetes, Docker, CI/CD, and infrastructure. Get expert answers with working commands, YAML examples, and real explanations — not vague theory.
+Ask anything about Kubernetes, Docker, CI/CD, and infrastructure. Get expert answers with working commands, YAML examples, and real explanations — not vague theory. Supports multi-turn conversation history.
 
 ```bash
 aiops ask "My HPA isn't scaling. How do I debug it?"
@@ -62,7 +78,7 @@ aiops logs --paste
 
 **Output includes:**
 - 🎯 Root cause (not just symptoms)
-- 🚨 Severity: CRITICAL / HIGH / MEDIUM / LOW  
+- 🚨 Severity: CRITICAL / HIGH / MEDIUM / LOW
 - ⚡ Immediate fix commands you can run right now
 - 🛠️ Long-term permanent solution
 - 🛡️ Prevention strategy
@@ -85,7 +101,7 @@ aiops generate pipeline --lang go --registry gcr.io --no-scan
 - Slack/Teams notifications (optional)
 
 ### 🏗️ Infrastructure as Code Generator
-Describe your app in plain English, get production-grade infrastructure code that actually follows best practices.
+Describe your app in plain English, get production-grade infrastructure code that follows best practices.
 
 ```bash
 # Dockerfile with multi-stage build, non-root user, healthcheck
@@ -98,11 +114,52 @@ aiops generate k8s "FastAPI app with Redis cache and PostgreSQL"
 aiops generate helm "Go gRPC microservice" --port 50051
 ```
 
+### 🚀 Full-Stack Project Generator *(New)*
+Describe an entire application in plain English — get a complete, runnable project structure with all files, dependencies, configs, tests, and deployment manifests.
+
+```bash
+# Via the Web UI or API:
+POST /api/project/generate
+{
+  "description": "Full-stack e-commerce app with React, Node.js API, and PostgreSQL",
+  "tech_stack": "react-node",
+  "complexity": "standard",
+  "include_docker": true,
+  "include_tests": true
+}
+```
+
+**Supported stacks:** React+Node · Vue+NestJS · Angular+Spring · Next.js · FastAPI+React · Django+React · Flask+Vue · Auto-detect
+
+---
+
+## 🖥️ Web UI
+
+AI DevOps Helper ships with a fully functional **web dashboard** — no separate frontend build needed.
+
+| Module | Description |
+|--------|-------------|
+| **Dashboard** | System overview with ASCII art, module cards, health status, and uptime counter |
+| **Chat Assistant** | Interactive chat with streaming responses, quick-prompt buttons, and markdown rendering |
+| **Log Analyzer** | Split-pane: paste logs on the left, get formatted root-cause analysis on the right |
+| **Pipeline Generator** | Configure language, platform, deploy target, and extras → get highlighted YAML output |
+| **Infra Generator** | Choose artifact type (Dockerfile / K8s / Helm / Terraform / Compose) → describe → generate |
+| **Project Generator** | Describe a full project → select tech stack and complexity → get all project files |
+
+**Access:** Open `http://localhost:3000` after starting with Docker Compose (served via Nginx).
+
+The UI features:
+- Animated boot sequence with progress bar
+- Real-time clock and uptime tracking
+- Syntax-highlighted output (YAML, Dockerfile, HCL)
+- One-click copy to clipboard
+- Streaming responses with typing indicator
+
 ---
 
 ## 🚀 Quick Start
 
-### Option 1: Docker (Recommended)
+### Option 1: Docker Compose (Recommended)
 
 ```bash
 # 1. Clone
@@ -113,14 +170,17 @@ cd ai-devops
 cp .env.example .env
 echo "GROQ_API_KEY=your_key_here" > .env
 
-# 3. Start
+# 3. Start backend + frontend
 docker compose up -d
 
 # 4. Verify
 curl http://localhost:8000/health
 # {"status":"healthy"}
 
-# 5. Open API docs
+# 5. Open the Web UI
+open http://localhost:3000
+
+# 6. Open API docs
 open http://localhost:8000/docs
 ```
 
@@ -132,13 +192,15 @@ git clone https://github.com/hraj1206/ai-devops.git
 cd ai-devops/backend
 
 # 2. Create virtual environment
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv && source .venv/bin/activate   # Linux/Mac
+python -m venv .venv && .venv\Scripts\activate       # Windows
 
 # 3. Install dependencies
 pip install -r requirements.txt
 
 # 4. Set API key
-export GROQ_API_KEY=your_key_here
+export GROQ_API_KEY=your_key_here                    # Linux/Mac
+set GROQ_API_KEY=your_key_here                       # Windows
 
 # 5. Run
 uvicorn main:app --reload --port 8000
@@ -159,7 +221,7 @@ ln -s $(pwd)/cli/main.py /usr/local/bin/aiops
 chmod +x /usr/local/bin/aiops
 ```
 
-**Get your Anthropic API key:** [console.groq.com](https://console.groq.com)
+**Get your Groq API key:** [console.groq.com](https://console.groq.com)
 
 ---
 
@@ -238,7 +300,7 @@ aiops generate helm "Go gRPC service" --lang go --port 50051
 
 ## 🌐 API Reference
 
-The backend exposes a REST API with streaming support. Interactive docs at `/docs`.
+The backend exposes a REST API with SSE streaming support. Interactive docs available at `/docs`.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -249,11 +311,12 @@ The backend exposes a REST API with streaming support. Interactive docs at `/doc
 | `GET` | `/api/logs/common-errors` | K8s/Docker error reference |
 | `POST` | `/api/pipeline/generate` | Generate CI/CD pipeline |
 | `GET` | `/api/pipeline/templates` | Available templates |
-| `POST` | `/api/infra/generate` | Generate IaC (Dockerfile, K8s, Helm) |
-| `POST` | `/api/infra/optimize-dockerfile` | Optimize existing Dockerfile |
+| `POST` | `/api/infra/generate` | Generate IaC (Dockerfile, K8s, Helm, Terraform) |
+| `POST` | `/api/infra/optimize-dockerfile` | Optimize an existing Dockerfile |
+| `POST` | `/api/project/generate` | Generate a complete project structure |
 | `GET` | `/health` | Health check |
 
-### Example API Call
+### Example API Calls
 
 ```bash
 # Chat (streaming)
@@ -280,6 +343,16 @@ curl -X POST http://localhost:8000/api/pipeline/generate \
     "deploy_target": "kubernetes",
     "stream": false
   }'
+
+# Generate full project
+curl -X POST http://localhost:8000/api/project/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "REST API with user auth and PostgreSQL",
+    "tech_stack": "fastapi-react",
+    "complexity": "standard",
+    "stream": false
+  }'
 ```
 
 ---
@@ -304,6 +377,8 @@ kubectl get svc -n ai-devops
 kubectl port-forward svc/ai-devops-backend 8000:8000 -n ai-devops
 ```
 
+**K8s manifests include:** Namespace · Deployment (2 replicas, rolling update) · Service · HPA (CPU & memory scaling, 2–10 pods) · Ingress (nginx) · PodDisruptionBudget · Security context (non-root, read-only FS, drop all capabilities)
+
 ---
 
 ## 🗂️ Project Structure
@@ -312,28 +387,32 @@ kubectl port-forward svc/ai-devops-backend 8000:8000 -n ai-devops
 ai-devops/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml              # Self-hosted CI pipeline (dogfooding!)
+│       └── ci.yml                 # Self-hosted CI pipeline (dogfooding!)
 ├── backend/
-│   ├── main.py                 # FastAPI app entry point
-│   ├── requirements.txt
-│   ├── Dockerfile              # Multi-stage, non-root, production-ready
+│   ├── main.py                    # FastAPI app entry point (5 routers)
+│   ├── requirements.txt           # Python dependencies
+│   ├── Dockerfile                 # Multi-stage, non-root, production-ready
 │   ├── agents/
-│   │   ├── chat_agent.py       # DevOps Q&A with streaming
-│   │   ├── log_analyzer.py     # Log root cause analysis
-│   │   ├── pipeline_gen.py     # CI/CD YAML generation
-│   │   └── infra_gen.py        # Dockerfile / K8s / Helm generation
+│   │   ├── chat_agent.py          # DevOps Q&A with streaming + history
+│   │   ├── log_analyzer.py        # Log root cause analysis engine
+│   │   ├── pipeline_gen.py        # CI/CD YAML generation
+│   │   ├── infra_gen.py           # Dockerfile / K8s / Helm / Terraform
+│   │   └── project_gen.py         # Full-stack project scaffolding
 │   ├── prompts/
-│   │   └── system_prompts.py   # Expert-level AI system prompts
+│   │   └── system_prompts.py      # Expert-level system prompts for each agent
 │   └── tools/
-│       └── claude_client.py    # Anthropic API client + streaming
+│       └── groq_client.py         # Groq API client (streaming + sync)
 ├── cli/
-│   └── main.py                 # Typer CLI with Rich formatting
+│   └── main.py                    # Typer CLI with Rich formatting
 ├── k8s/
-│   └── manifests.yaml          # K8s Deployment, HPA, Ingress, PDB
+│   └── manifests.yaml             # Namespace, Deployment, HPA, Ingress, PDB
 ├── tests/
-│   └── test_api.py
-├── docker-compose.yml
+│   └── test_api.py                # API endpoint tests
+├── index.html                     # Web UI (single-page dashboard)
+├── docker-compose.yml             # Backend + Nginx frontend
 ├── .env.example
+├── .gitignore
+├── LICENSE                        # MIT
 └── README.md
 ```
 
@@ -347,9 +426,10 @@ ai-devops/
 - [x] Dockerfile generator with multi-stage builds
 - [x] Kubernetes manifest generator
 - [x] Helm chart generator
-- [x] Docker Compose generator
+- [x] Full-stack project generator (7 tech stacks)
+- [x] Web UI dashboard with animated boot sequence
 - [x] Production K8s deployment with HPA, PDB, Ingress
-- [ ] Web UI (React dashboard)
+- [x] Docker Compose (backend + frontend)
 - [ ] Slack bot integration
 - [ ] `kubectl` plugin (`kubectl ai`)
 - [ ] VS Code extension
@@ -367,7 +447,7 @@ Contributions are welcome! Here's how to get started:
 ```bash
 git clone https://github.com/hraj1206/ai-devops.git
 cd ai-devops
-cp .env.example .env   # Add your API key
+cp .env.example .env   # Add your Groq API key
 docker compose up -d
 ```
 
@@ -375,7 +455,7 @@ docker compose up -d
 - Add a new agent (e.g., Terraform generator, cost estimator)
 - Improve system prompts for better output quality
 - Add more test coverage
-- Build the React frontend
+- Build a React/Next.js frontend replacement
 
 Please open an issue before starting large features.
 
@@ -388,5 +468,5 @@ MIT — see [LICENSE](LICENSE)
 ---
 
 <div align="center">
-Built with ❤️ using <a href="https://groq.com">Groq LLM</a> • <a href="https://fastapi.tiangolo.com">FastAPI</a> • <a href="https://kubernetes.io">Kubernetes</a>
+Built with ❤️ using <a href="https://groq.com">Groq</a> • <a href="https://console.groq.com">LLaMA 3.3-70B</a> • <a href="https://fastapi.tiangolo.com">FastAPI</a> • <a href="https://kubernetes.io">Kubernetes</a>
 </div>

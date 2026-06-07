@@ -1,0 +1,80 @@
+=========================================
+🚀 AI DEVOPS HELPER - TEST SAMPLES 🚀
+=========================================
+
+-----------------------------------------
+💬 1. CHAT ASSISTANT SAMPLES
+-----------------------------------------
+Prompt 1 (Debugging):
+"My Kubernetes pod is stuck in 'Pending' state. What are the top 5 things I should check?"
+
+Prompt 2 (Concepts):
+"Explain the difference between a Deployment and a StatefulSet with a practical example."
+
+Prompt 3 (Best Practices):
+"How do I set up Pod Anti-Affinity to ensure my pods are spread across different nodes for high availability?"
+
+Prompt 4 (Security):
+"Write a Kubernetes NetworkPolicy that allows traffic only from a specific namespace called 'frontend'."
+
+
+-----------------------------------------
+🔍 2. LOG ANALYZER SAMPLES
+-----------------------------------------
+Sample A (Kubernetes OOMKilled):
+"Memory limit exceeded: [pod: my-app-7d4f8f4f9-abcde] [container: web-server] current usage: 512Mi, limit: 512Mi. Killing container."
+
+Sample B (CrashLoopBackOff / Node.js Error):
+"Error: Cannot find module './db-config'
+    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:933:15)
+    at Function.Module._load (node:internal/modules/cjs/loader:778:27)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:77:12)
+node:internal/main/run_main_module:17:47"
+
+Sample C (Docker Build Failure):
+"Step 7/12 : RUN npm install
+ ---> Running in a1b2c3d4e5f6
+npm ERR! code E404
+npm ERR! 404 Not Found - GET https://registry.npmjs.org/private-pkg - Not found
+npm ERR! 404 'private-pkg@1.0.0' is not in the npm registry."
+
+
+-----------------------------------------
+⚙️ 3. CI/CD PIPELINE SAMPLES
+-----------------------------------------
+Sample 1 (GitHub Actions):
+"Generate a GitHub Actions pipeline for a Python FastAPI app. Include Docker build, push to Docker Hub, and deploy to Kubernetes using a rolling update."
+
+Sample 2 (GitLab CI):
+"Create a GitLab CI YAML for a Node.js Express app with security scanning using Trivy and a deployment to production namespace."
+
+
+-----------------------------------------
+🏗️ 4. INFRASTRUCTURE SAMPLES
+-----------------------------------------
+Sample 1 (Dockerfile):
+"Generate a production-ready Dockerfile for a Go application. Use a multi-stage build, non-root user, and optimize for size using Alpine."
+
+Sample 2 (Kubernetes Manifest):
+"Create K8s manifests for a 'voting-app' with:
+- 3 replicas
+- A LoadBalancer service on port 80
+- Resource limits: 128Mi RAM, 100m CPU
+- A HorizontalPodAutoscaler (HPA) targeting 70% CPU usage."
+
+Sample 3 (Helm Chart):
+"Generate a Helm chart structure for a microservice named 'order-service' running on port 50051."
+
+
+-----------------------------------------
+🚀 5. PROJECT GENERATOR SAMPLES
+-----------------------------------------
+Sample 1 (Full Stack):
+"Generate a full-stack e-commerce project using React for frontend, Node.js with TypeScript for backend, and PostgreSQL for the database. Include Docker Compose."
+
+Sample 2 (Data API):
+"Create a Data API project using FastAPI, Redis for caching, and a simple dashboard using HTML/CSS."
+
+=========================================
+END OF SAMPLES
+=========================================
