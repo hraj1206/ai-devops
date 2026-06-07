@@ -278,7 +278,7 @@ select.ti option{background:var(--bg);color:var(--text);}
       <div class="ni" onclick="chkHealth()"><span>HEALTH CHECK</span></div>
       <div class="sys-info">
         MODEL: llama-3.3-70b<br>
-        API: <span id="api-display">localhost:8000</span><br>
+        API: <span id="api-display">ai-devopsss.onrender.com</span><br>
         STATUS: <span style="color:var(--success)" id="status-display">ACTIVE</span><br>
         UPTIME: <span id="uptime">00:00:00</span>
       </div>
@@ -553,7 +553,7 @@ e.g. 'Create a full-stack web app with React frontend, Node.js API, PostgreSQL d
 </div>
 
 <script>
-let API = 'http://localhost:8000';
+let API = 'https://ai-devopsss.onrender.com';
 let bootLines = [];
 function createBootLines(apiHost){
   return [
@@ -582,7 +582,7 @@ function bootStep(){
 // Load runtime config from backend, then start boot sequence
 async function loadConfig(){
   try{
-    const res = await fetch('/config.json');
+    const res = await fetch('https://ai-devopsss.onrender.com/config.json');
     if(res.ok){
       const cfg = await res.json();
       if(cfg.api_url) API = cfg.api_url;
