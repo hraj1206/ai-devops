@@ -74,9 +74,24 @@ async def root(request: Request):
 async def config(request: Request):
     """Runtime configuration for the frontend. Returns the backend URL (from env or request)."""
     api = os.getenv("AIOPS_API_URL")
+    # Treat obvious local values as unset when serving remote clients
+    if api:
+        api_l = api.lower()
+        if (
+            api_l.startswith("http://localhost")
+            or api_l.startswith("https://localhost")
+            or api_l.startswith("http://127.0.0.1")
+            or api_l.startswith("https://127.0.0.1")
+            or api_l.startswith("http://0.0.0.0")
+            or api_l == "localhost"
+            or api_l == "127.0.0.1"
+        ):
+            api = None
+
     if not api:
         base = str(request.base_url).rstrip("/")
         api = base
+
     return {"api_url": api}
 
 
