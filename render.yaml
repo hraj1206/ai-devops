@@ -1,14 +1,20 @@
-services:
-  - type: web
+﻿services:
+  - type: web_service
     name: ai-devops-groq-backend
-    env: python
+    env: docker
     plan: free
     branch: main
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    # Add expected environment variables here (values set in Render dashboard)
+    root: backend
+    dockerfilePath: Dockerfile
     envVars:
       - key: GROQ_API_KEY
-        value: ""
+        sync: false
+    autoDeploy: true
+
+  - type: static_site
+    name: ai-devops-groq-frontend
+    plan: free
+    branch: main
+    root: ./
+    publishPath: ./
     autoDeploy: true
