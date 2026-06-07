@@ -64,7 +64,7 @@ def test_chat_no_stream(monkeypatch):
         return "Mocked DevOps response"
 
     import agents.chat_agent as chat_module
-    monkeypatch.setattr("tools.claude_client.get_response", mock_get_response)
+    monkeypatch.setattr("tools.groq_client.get_response", mock_get_response)
 
     response = client.post("/api/chat/ask", json={
         "message": "What is Kubernetes?",

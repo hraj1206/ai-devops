@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from contextlib import asynccontextmanager
 import uvicorn
+import os
 
 from agents.chat_agent import router as chat_router
 from agents.log_analyzer import router as log_router
@@ -13,9 +14,9 @@ from agents.project_gen import router as project_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 AI DevOps Helper starting up...")
+    print("[START] AI DevOps Helper starting up...")
     yield
-    print("🛑 AI DevOps Helper shutting down...")
+    print("[STOP] AI DevOps Helper shutting down...")
 
 
 app = FastAPI(
@@ -41,7 +42,12 @@ app.include_router(project_router, prefix="/api/project", tags=["Project Generat
 
 
 @app.get("/")
-async def root():
+async def root(request: Request):
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept:
+        for path in ["index.html", "../index.html", "/app/index.html"]:
+            if os.path.exists(path):
+                return FileResponse(path)
     return {
         "name": "AI DevOps Helper",
         "version": "1.0.0",

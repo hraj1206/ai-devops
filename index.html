@@ -8,7 +8,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
-  --primary:#007acc;--primary-hover:#0056b3;--primary-light:#e6f3ff;
+  --primary:#007acc;--primary-hover:#0056b3;--primary-light:#e6f3ff;--green:#00ff41;--red:#ff3b30;
   --secondary:#6c757d;--secondary-hover:#5a6268;
   --success:#28a745;--success-light:#d4edda;
   --warning:#ffc107;--warning-light:#fff3cd;
@@ -274,12 +274,12 @@ select.ti option{background:var(--bg);color:var(--text);}
       <div class="ni" onclick="sw('project',this)"><span>PROJECT GEN</span><span class="nb">06</span></div>
       <div class="sdiv"></div>
       <div class="sb-sec">// SYSTEM</div>
-      <div class="ni" onclick="window.open('http://localhost:8000/docs','_blank')"><span>API DOCS</span><span class="nb">↗</span></div>
+      <div class="ni" onclick="window.open(API + '/docs','_blank')"><span>API DOCS</span><span class="nb">↗</span></div>
       <div class="ni" onclick="chkHealth()"><span>HEALTH CHECK</span></div>
       <div class="sys-info">
         MODEL: llama-3.3-70b<br>
-        API: localhost:8000<br>
-        STATUS: <span style="color:var(--success)">ACTIVE</span><br>
+        API: <span id="api-display">localhost:8000</span><br>
+        STATUS: <span style="color:var(--success)" id="status-display">ACTIVE</span><br>
         UPTIME: <span id="uptime">00:00:00</span>
       </div>
     </nav>
@@ -553,12 +553,19 @@ e.g. 'Create a full-stack web app with React frontend, Node.js API, PostgreSQL d
 </div>
 
 <script>
-const API='http://localhost:8000';
+const API = localStorage.getItem('AIOPS_API_URL') || 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === ''
+    ? 'http://localhost:8000'
+    : window.location.origin);
+
+const apiHost = API.replace('http://', '').replace('https://', '');
+document.getElementById('api-display').textContent = apiHost;
+
 const bootLines=[
   {c:'info',t:'Initializing DEVOPS//AI Intelligence System...'},
   {c:'load',t:'Loading LLM runtime [groq:llama-3.3-70b-versatile]'},
   {c:'ok',  t:'Neural inference engine ONLINE'},
-  {c:'load',t:'Connecting FastAPI backend localhost:8000'},
+  {c:'load',t:`Connecting FastAPI backend ${apiHost}`},
   {c:'ok',  t:'API gateway CONNECTED'},
   {c:'load',t:'Mounting agent modules [chat, logs, pipeline, infra]'},
   {c:'ok',  t:'chat_agent LOADED'},
@@ -595,8 +602,13 @@ function sw(name,el){
 }
 
 async function chkHealth(){
-  try{await fetch(API+'/health');document.querySelector('.sys-info').innerHTML='MODEL: llama-3.3-70b<br>API: localhost:8000<br>STATUS: <span style="color:var(--green)">NOMINAL</span><br>UPTIME: <span id="uptime">--</span>';}
-  catch{document.querySelector('.sys-info').innerHTML='MODEL: llama-3.3-70b<br>API: localhost:8000<br>STATUS: <span style="color:var(--red)">OFFLINE</span>';}
+  const statusDisplay = document.getElementById('status-display');
+  try{
+    await fetch(API+'/health');
+    if(statusDisplay) statusDisplay.innerHTML = '<span style="color:var(--success)">NOMINAL</span>';
+  }catch{
+    if(statusDisplay) statusDisplay.innerHTML = '<span style="color:var(--danger)">OFFLINE</span>';
+  }
 }
 
 let hist=[];
@@ -833,7 +845,7 @@ async function sendChat(){
       }
     }
     hist.push({role:'assistant',content:full});
-  }catch(e){typ.remove();addMsg('bot','<span style="color:#ff5050;font-weight:bold">[CONNECTION ERROR]</span><br>Cannot reach backend at localhost:8000<br><br><strong>Possible solutions:</strong><br>• Ensure <code>docker-compose up</code> is running<br>• Check if port 8000 is available<br>• Verify GROQ_API_KEY is set in environment<br><br>Error: '+e.message);}
+  }catch(e){typ.remove();addMsg('bot','<span style="color:#ff5050;font-weight:bold">[CONNECTION ERROR]</span><br>Cannot reach backend at '+API+'<br><br><strong>Possible solutions:</strong><br>• Ensure <code>docker-compose up</code> is running<br>• Check if port 8000 is available<br>• Verify GROQ_API_KEY is set in environment<br><br>Error: '+e.message);}
   document.getElementById('xbtn').disabled=false;
 }
 
