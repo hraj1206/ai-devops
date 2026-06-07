@@ -556,7 +556,7 @@ e.g. 'Create a full-stack web app with React frontend, Node.js API, PostgreSQL d
 const API = localStorage.getItem('AIOPS_API_URL') || 
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === ''
     ? 'http://localhost:8000'
-    : window.location.origin);
+    : 'https://ai-devopsss.onrender.com');
 
 const apiHost = API.replace('http://', '').replace('https://', '');
 document.getElementById('api-display').textContent = apiHost;
