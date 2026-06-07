@@ -206,6 +206,18 @@ set GROQ_API_KEY=your_key_here                       # Windows
 uvicorn main:app --reload --port 8000
 ```
 
+## 🚀 Deploy to Render
+
+This project includes a `render.yaml` service manifest. To deploy on Render:
+
+- Connect your GitHub/GitLab account to Render and create a new Web Service for this repository.
+- Ensure the service uses branch `main` and the `backend` root directory (the included `render.yaml` should be detected automatically).
+- In the Render dashboard, add the required secret `GROQ_API_KEY` (Environment → Add Environment Variable).
+- Trigger a deploy or push a commit; once built the backend will be available at the Render URL.
+
+Verify the service by visiting `/health` and `/docs` on the Render URL.
+
+
 ### Install the CLI
 
 ```bash
