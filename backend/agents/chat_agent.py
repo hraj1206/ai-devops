@@ -53,9 +53,10 @@ async def ask(request: ChatRequest):
             generator = stream_response(CHAT_SYSTEM_PROMPT, messages)
         except Exception as e:
             logger.exception("Error creating Groq stream")
+            err_msg = str(e)
 
             def _err_gen():
-                yield f"data: [ERROR] {str(e)}\n\n"
+                yield f"data: [ERROR] {err_msg}\n\n"
                 yield "data: [DONE]\n\n"
 
             return StreamingResponse(
