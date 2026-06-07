@@ -10,11 +10,3 @@
       - key: GROQ_API_KEY
         sync: false
     autoDeploy: true
-
-  - type: static_site
-    name: ai-devops-groq-frontend
-    plan: free
-    branch: main
-    root: ./
-    publishPath: ./
-    autoDeploy: true

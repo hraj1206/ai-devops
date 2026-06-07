@@ -20,6 +20,7 @@ RUN groupadd --gid 1001 appgroup && \
 
 COPY --from=builder /root/.local /home/appuser/.local
 COPY --chown=appuser:appgroup backend/ .
+COPY --chown=appuser:appgroup index.html /app/index.html
 
 USER appuser
 
