@@ -553,27 +553,24 @@ e.g. 'Create a full-stack web app with React frontend, Node.js API, PostgreSQL d
 </div>
 
 <script>
-const API = localStorage.getItem('AIOPS_API_URL') || 
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === ''
-    ? 'http://localhost:8000'
-    : 'https://ai-devopsss.onrender.com');
+let API = 'http://localhost:8000';
+let bootLines = [];
+function createBootLines(apiHost){
+  return [
+    {c:'info',t:'Initializing DEVOPS//AI Intelligence System...'},
+    {c:'load',t:'Loading LLM runtime [groq:llama-3.3-70b-versatile]'},
+    {c:'ok',  t:'Neural inference engine ONLINE'},
+    {c:'load',t:`Connecting FastAPI backend ${apiHost}`},
+    {c:'ok',  t:'API gateway CONNECTED'},
+    {c:'load',t:'Mounting agent modules [chat, logs, pipeline, infra]'},
+    {c:'ok',  t:'chat_agent LOADED'},
+    {c:'ok',  t:'log_analyzer LOADED'},
+    {c:'ok',  t:'pipeline_gen LOADED'},
+    {c:'ok',  t:'infra_gen LOADED'},
+    {c:'ok',  t:'CRT filters active. All systems nominal.'},
+  ];
+}
 
-const apiHost = API.replace('http://', '').replace('https://', '');
-document.getElementById('api-display').textContent = apiHost;
-
-const bootLines=[
-  {c:'info',t:'Initializing DEVOPS//AI Intelligence System...'},
-  {c:'load',t:'Loading LLM runtime [groq:llama-3.3-70b-versatile]'},
-  {c:'ok',  t:'Neural inference engine ONLINE'},
-  {c:'load',t:`Connecting FastAPI backend ${apiHost}`},
-  {c:'ok',  t:'API gateway CONNECTED'},
-  {c:'load',t:'Mounting agent modules [chat, logs, pipeline, infra]'},
-  {c:'ok',  t:'chat_agent LOADED'},
-  {c:'ok',  t:'log_analyzer LOADED'},
-  {c:'ok',  t:'pipeline_gen LOADED'},
-  {c:'ok',  t:'infra_gen LOADED'},
-  {c:'ok',  t:'CRT filters active. All systems nominal.'},
-];
 let bi=0;
 const blog=document.getElementById('boot-log'),pfill=document.getElementById('pfill');
 function bootStep(){
@@ -582,7 +579,22 @@ function bootStep(){
   pfill.style.width=((bi+1)/bootLines.length*100)+'%';bi++;
   setTimeout(bootStep,100+Math.random()*70);
 }
-setTimeout(bootStep,300);
+// Load runtime config from backend, then start boot sequence
+async function loadConfig(){
+  try{
+    const res = await fetch('/config.json');
+    if(res.ok){
+      const cfg = await res.json();
+      if(cfg.api_url) API = cfg.api_url;
+    }
+  }catch(e){/* ignore */}
+  const apiHost = API.replace('http://','').replace('https://','');
+  document.getElementById('api-display').textContent = apiHost;
+  bootLines = createBootLines(apiHost);
+  bootStep();
+}
+
+loadConfig();
 
 const st=Date.now();
 function tick(){

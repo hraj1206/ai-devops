@@ -63,6 +63,16 @@ async def root(request: Request):
     }
 
 
+@app.get("/config.json")
+async def config(request: Request):
+    """Runtime configuration for the frontend. Returns the backend URL (from env or request)."""
+    api = os.getenv("AIOPS_API_URL")
+    if not api:
+        base = str(request.base_url).rstrip("/")
+        api = base
+    return {"api_url": api}
+
+
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
