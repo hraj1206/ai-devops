@@ -4,7 +4,7 @@
     env: docker
     plan: free
     branch: main
-    root: backend
+    root: ./
     dockerfilePath: Dockerfile
     envVars:
       - key: GROQ_API_KEY
