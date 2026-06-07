@@ -1,10 +1,14 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
+from fastapi import HTTPException
 from pydantic import BaseModel
 from typing import Optional
+import logging
 
 from tools.groq_client import stream_response, get_response
 from prompts.system_prompts import CHAT_SYSTEM_PROMPT
+
+logger = logging.getLogger("chat_agent")
 
 router = APIRouter()
 
@@ -45,8 +49,26 @@ async def ask(request: ChatRequest):
     messages.append({"role": "user", "content": request.message})
 
     if request.stream:
+        try:
+            generator = stream_response(CHAT_SYSTEM_PROMPT, messages)
+        except Exception as e:
+            logger.exception("Error creating Groq stream")
+
+            def _err_gen():
+                yield f"data: [ERROR] {str(e)}\n\n"
+                yield "data: [DONE]\n\n"
+
+            return StreamingResponse(
+                _err_gen(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "X-Accel-Buffering": "no",
+                },
+            )
+
         return StreamingResponse(
-            stream_response(CHAT_SYSTEM_PROMPT, messages),
+            generator,
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -54,8 +76,13 @@ async def ask(request: ChatRequest):
             },
         )
     else:
-        response_text = get_response(CHAT_SYSTEM_PROMPT, messages)
-        return ChatResponse(response=response_text)
+        try:
+            response_text = get_response(CHAT_SYSTEM_PROMPT, messages)
+            return ChatResponse(response=response_text)
+        except Exception as e:
+            logger.exception("Error getting Groq response")
+            # Surface a 502 so callers know it's an upstream problem
+            raise HTTPException(status_code=502, detail=f"Upstream AI service error: {str(e)}")
 
 
 @router.get("/examples")
